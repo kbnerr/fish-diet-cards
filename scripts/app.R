@@ -12,7 +12,6 @@ library(tidyr)
 library(ggbiplot)
 library(Rcpp)
 
-
 #Grab data from google sheets (it will make you log into your google account and grant access)------
 gs4_deauth() #This says that the sheet is public and it's chill to use it
 link <- "https://docs.google.com/spreadsheets/d/10_uuMLOqu3s5fbRgF3x_Jt1VsufmJ6hLokaZ0aHvOYk/edit?usp=sharing"
@@ -39,7 +38,9 @@ diet_data_grouped <- diet_data %>%
   group_by(Predator_spec, Species) %>%
   tally() %>%
   mutate(Relabund=paste0(round(n/sum(n)*100,2))) 
-#PROBLEM I think the problem is in the line above, it's not calculating n/sum(n) by Predator spec XXXXXXX
+
+#PROBLEM I think the problem is in the line above, it's calculating n/sum(n) by summing ALL Predator species, not just within one Predator spec
+
 diet_data_grouped$Relabund <- as.numeric(diet_data_grouped$Relabund)
 head(diet_data_grouped)
 
@@ -98,6 +99,13 @@ compfish
 
 #size density of different species by sex
 head(diet_data)
+predsize_sum <- diet_data %>% 
+  group_by(Predator_spec, Sex) %>% 
+  filter(!is.na(Length_cm)) %>%
+  filter(!is.na(Sex)) %>%
+  dplyr::summarise(length = Length_cm,samp = n())
+head(predsize_sum)
+storms_sum
 predsize <- diet_data %>%
   group_by(Fish_ID) %>%
   filter(!is.na(Length_cm)) %>%
