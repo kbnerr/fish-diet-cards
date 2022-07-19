@@ -105,7 +105,6 @@ predsize_sum <- diet_data %>%
   filter(!is.na(Sex)) %>%
   dplyr::summarise(length = Length_cm,samp = n())
 head(predsize_sum)
-storms_sum
 predsize <- diet_data %>%
   group_by(Fish_ID) %>%
   filter(!is.na(Length_cm)) %>%
@@ -154,8 +153,9 @@ diet_data_wide[is.na(diet_data_wide)] <- 0
 head(diet_data_wide) #note - may need to remove fish IDs that have 0 associated species
 
 #Splice in Predator_spec row
-predspec <- diet_data %>%
-  select(Fish_ID, Predator_spec)
+head(diet_data)
+predspec <- diet_data %>% 
+  subset(select = c("Fish_ID", "Predator_spec"))
 head(predspec)
 widepred <- merge(diet_data_wide, predspec, by = "Fish_ID")
 head(widepred)
