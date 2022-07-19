@@ -1,15 +1,13 @@
 library(shiny)
 library(googlesheets4)
 library(devtools)
-library(ggplot2)
-library(dplyr)
+library(tidyverse) # includes packages: ggplot2. dplyr, forcats, tidyr, plus others
 library(ggsci)
 library(ggpubr)
-library(forcats)
 library(rsconnect)
 library(DT) #this package allows interactive data table visualization
-library(tidyr)
-library(ggbiplot)
+library(ggbiplot) 
+# It looks like ggbiplot hasn't been updated in over 5 years. I can't get it to work. I suggest using another plotting method so that users with newer versions of R can run the pca script.
 library(Rcpp)
 
 #Grab data from google sheets (it will make you log into your google account and grant access)------
@@ -37,16 +35,51 @@ diet_data_grouped <- diet_data %>%
   subset(Contents == "Y") %>%
   group_by(Predator_spec, Species) %>%
   tally() %>%
-  mutate(Relabund=paste0(round(n/sum(n)*100,2))) 
+  mutate(Relabund = paste0(round(n/sum(n)*100,2))) 
 
 #PROBLEM I think the problem is in the line above, it's calculating n/sum(n) by summing ALL Predator species, not just within one Predator spec
 
-diet_data_grouped$Relabund <- as.numeric(diet_data_grouped$Relabund)
+# Your 'Relabund' actually looks good to me.
+# Running the code as is gets me proportion of forage sp for each predator sp.
+# I have some alternative solutions for you to consider:
+
+# Make objects that contain your list of prey species:
+# This way, you can easily add more species.
+# Ideally, you would have a spreadsheet with all of your species so you can just read them in as data.
+forage_fish = c("Capelin", 
+                "Pacific_herring",
+                "Pacific_sand_lance",
+                "Unidentified_bony_fish",
+                "Unidentified_smelt",
+                "Rockfish")
+crab = c("Dungeness_crab",
+         "Hermit_crab",
+         "Pygmy_cancer_crab",
+         "Graceful_decorator_crab",
+         "Unidentified_crab")
+flatfish = c("Rock_sole",
+             "Sand_sole",
+             "Unidentified_flatfish")
+
+# Calculate relative abundance:
+diet_data %>%
+  mutate(Prey_type = case_when(Species %in% forage_fish ~ 'Forage_fish',
+                              Species %in% crab ~ 'Crab',
+                              Species %in% flatfish ~ 'Flatfish',
+                              !Species %in% c(forage_fish, crab, flatfish) ~ Species)) %>%
+  filter(Contents == "Y") %>% # dplyr uses filter() instead of subset()
+  group_by(Predator_spec, Prey_type) %>%
+  tally() %>%
+  ungroup() %>% group_by(Predator_spec) %>%
+  mutate(Relabund = round((n / sum(n) * 100), 2))
+# ^This replicates what your code does. Take or leave anything you like.
+
+diet_data_grouped$Relabund <- as.numeric(diet_data_grouped$Relabund) # if you use case_when() like above, this wouldn't be necessary
 head(diet_data_grouped)
 
 head(diet_data)
 diet_data_fish <- diet_data %>%
-  subset(Fish == "Y") %>%
+  subset(Fish == "Y") %>% 
   group_by(Predator_spec, Species) %>%
   tally() %>%
   mutate(Relabund=paste0(round(n/sum(n)*100,2)))
@@ -105,9 +138,23 @@ predsize_sum <- diet_data %>%
   filter(!is.na(Sex)) %>%
   dplyr::summarise(length = Length_cm,samp = n())
 head(predsize_sum)
-storms_sum
+
+# 'predsize_sum' looks to have repeated rows (e.g., rows 2-4, 6-8),
+# which makes sense bc each row in diet_data is a unique prey obs, not predator obs...
+# Here's my suggested code for calculating what I think you're going for:
+diet_data %>%
+  select(Predator_spec,
+         Sex,
+         length = Length_cm) %>%
+  drop_na(length, Sex) %>%
+  distinct() %>%
+  group_by(Predator_spec, Sex) %>%
+  mutate(n_pred.sex = n()) # I renamed this col to be more explicit what has been calculated
+
+storms_sum # is this old?
+
 predsize <- diet_data %>%
-  group_by(Fish_ID) %>%
+  group_by(Fish_ID) %>% # not sure what grouping by Fish_ID does here
   filter(!is.na(Length_cm)) %>%
   filter(!is.na(Sex)) %>%
   ggplot(aes(x = Length_cm, fill = Sex)) +
@@ -116,12 +163,33 @@ predsize <- diet_data %>%
   facet_wrap( ~ Predator_spec)
 predsize
 
+# Here' the 'predsize' plot using the grouped predator and sex as I calculated.
+# There are some issues due to too few samples for Yelloweye and Male Lingcod.
+# I've also included an example code to add labels to a density plot.
+diet_data %>%
+  select(Predator_spec,
+         Sex,
+         Length_cm) %>%
+  drop_na(Length_cm, Sex) %>%
+  distinct() %>%
+  group_by(Predator_spec, Sex) %>%
+  mutate(n_pred.sex = n()) %>%
+  ggplot(aes(x = Length_cm, fill = Sex)) +
+    geom_density(alpha = 0.3) +
+    geomtextpath::geom_textdensity(aes(label = n_pred.sex),
+                                   hjust = 'ymax', vjust = -0.02,
+                                   straight = TRUE) +
+    theme_classic() +
+    facet_wrap( ~ Predator_spec)
+
+
 #FORAGE FISH COMMUNITY
 countfish <- fish_count %>%
   mutate(Species = fct_reorder(Species, desc(n))) %>%
-  ggplot(aes(x = Species, y = n)) +
+  ggplot(aes(x = Species, y = n, label = n)) +
   geom_col(fill = "light blue") +
-  ylab("Found in n fish stomachs") +
+  geom_text(nudge_y = 1) + # histograms are easier to label
+  ylab("Found in n fish stomachs") + # This is a confusing label... maybe just 'Frequency' ?
   xlab("Prey fish species") +
   theme_classic()
 countfish
@@ -136,6 +204,7 @@ foragesize <- diet_data %>%
   ylab("Density") +
   xlab("Length (cm)")
 foragesize
+  
 
 #----Making competition PCA----
 #Calculate abundance
@@ -159,6 +228,10 @@ predspec <- diet_data %>%
 head(predspec)
 widepred <- merge(diet_data_wide, predspec, by = "Fish_ID")
 head(widepred)
+
+# Here's another way to do the above:
+left_join(diet_data_wide, select(diet_data, Fish_ID, Predator_spec), by = "Fish_ID") %>%
+  relocate(Predator_spec, .after = 1) # if you want to see Fish_ID and Predator_spec next to each other
 
 #Create sp and env dataframes
 sp_wide <- subset(widepred, select = -c(Fish_ID, Predator_spec) )
