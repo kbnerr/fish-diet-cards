@@ -6,6 +6,9 @@ library(devtools)
 library(ggbiplot)
 library(Rcpp)
 
+install_github("vqv/ggbiplot")
+library(ggbiplot)
+
 gs4_deauth() #This says that the sheet is public and it's chill to use it
 link <- "https://docs.google.com/spreadsheets/d/10_uuMLOqu3s5fbRgF3x_Jt1VsufmJ6hLokaZ0aHvOYk/edit?usp=sharing"
 diet_data <- read_sheet(link)
