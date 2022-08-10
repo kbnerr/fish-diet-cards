@@ -105,7 +105,7 @@ compfish <- ggplot(diet_data_fish, aes(x = Predator_spec, y = Relabund, fill = S
   ylab("Percent diet composition") +
   xlab("Predator species") +
   theme_classic() +
-  scale_fill_npg()
+  scale_fill_brewer(palette = "Spectral")
 compfish
 
 #size density of different species by sex
@@ -128,6 +128,7 @@ diet_data %>%
   dplyr::mutate(n_pred.sex = n()) # I renamed this col to be more explicit what has been calculated
 
 #predsize plot
+head(diet_data)
 predsize <- diet_data %>%
   select(Predator_spec,
          Sex,
@@ -136,8 +137,11 @@ predsize <- diet_data %>%
   distinct() %>%
   group_by(Predator_spec, Sex) %>%
   dplyr::mutate(n_pred.sex = n()) %>%
+  filter(n_pred.sex > 2) %>%
   ggplot(aes(x = Length_cm, fill = Sex)) +
   geom_density(alpha = 0.3) +
+  xlab("Length (cm)") +
+  ylab("Frequency") +
   geomtextpath::geom_textdensity(aes(label = n_pred.sex),
                                  hjust = 'ymax', vjust = -0.02,
                                  straight = TRUE) +
@@ -151,7 +155,7 @@ countfish <- fish_count %>%
   ggplot(aes(x = Species, y = n, label = n)) +
   geom_col(fill = "light blue") +
   geom_text(nudge_y = 1) + # histograms are easier to label
-  ylab("Found in n fish stomachs") + # This is a confusing label... maybe just 'Frequency' ?
+  ylab("Frequency") + # This is a confusing label... maybe just 'Frequency' ?
   xlab("Prey fish species") +
   theme_classic()
 countfish
@@ -164,7 +168,8 @@ foragesize <- diet_data %>%
   geom_density(alpha = 0.3) +
   theme_classic() +
   ylab("Density") +
-  xlab("Length (cm)")
+  xlab("Length (cm)") +
+  scale_fill_brewer(palette = "Spectral")
 foragesize
 
 #Create web app----
@@ -179,50 +184,73 @@ navlistPanel("A KBNERR citizen science initiative",
                       tags$h4("The forage fish community fills a trophic niche between plankton and large fish."),
                       fluidRow(tags$img(src = "trophic.png", height = "300 px"), align = "center"),
                       tags$h4("Since we eat large predatory fish, we want to make sure there's enough forage fish to maintain this food chain."),
+                      tags$br(),
                       tags$h2("Alaskan scientists and fishermen are collaborating to monitor forage fish communities."),
                       tags$h4("When someone catches a fish, they remove its stomach contents and photograph these contents on a laminated “diet card."),
                       tags$h4("The fisherman records information about the fish they caught before sending a photo of the card to us."),
                       fluidRow(tags$img(src = "example.JPEG", height = "300 px"), align = "center"),
                       tags$h4("A scientist will then identify the species present in that predatory fish’s diet. In the picture above, you can see that a king salmon had eaten one Pacific sand lance."),
+                      tags$br(),
                       tags$h2("See the science"),
                       tags$h4("This information can tell us:"),
                       tags$h4("-  What do different economically important species, like salmon and halibut, depend on for their food?"),
                       tags$h4("-  What species make up the forage fish population of Kachemak Bay?"),
                       tags$h4("On this website, you can see up-to-date visualizations that answer these two questions - and pose some more!"),
+                      tags$br(),
                       tags$h2("Want to help out?"),
                       tags$h4("Contact syverine@alaska.edu and we will do our best to get diet card materials to you. If you already have a diet card, send in photos to this", a("link.", href = "https://tinyurl.com/fish-guts")),
                       fluidRow(tags$img(src = "sandlance.png", height = "300 px"), align = "center")
              ),
              #Now for the tabs that are working with data------
              tabPanel(title = "Game fish predation",
-                      tags$h3("What are the big fish eating?"),
-                      "We would expect that groundfish, like Halibut, eat more organisms that live on the seafloor, like crabs. On the other hand, salmon - which hunt up and down the water column - tend to mostly eat forage fish.",
+                      tags$h2("What are the big fish eating?"),
+                      tags$h4("We would expect that groundfish, like Halibut, eat more organisms that live on the seafloor, like crabs. On the other hand, salmon - which hunt up and down the water column - tend to mostly eat forage fish."),
                       plotOutput("allHist"),
-                      tags$h4("Let's look at fish specifically"),
+                      tags$h4("Let's visualize which forage fish different predator species prey on."),
                       plotOutput("allHistFish"),
-                      tags$h4("Size distribution of predator species"),
-                      "For most fish, it is expected that female specimens are bigger. Keep in mind that fishermen often throw back too-small fish, so this data may be skewed towards larger specimens.",
+                      tags$br(),
+                      tags$h2("Diet card data can help us keep track of predator size."),
+                      tags$h4("This is a density plot, which visualizes how common (the y axis - frequency) each size (the x axis - length in cm) of predator species is."),
+                      tags$h4("For most fish, it is expected that female specimens are bigger. Keep in mind that fishermen often throw back too-small fish, so this data may be skewed towards larger specimens."),
                       plotOutput("predsize"),
+                      tags$br(),
                       tags$h3(align = "center", "All this information helps salmon (like this King) know where their next meal will come from!"),
                       fluidRow(tags$img(src = "chinook.png", height = "200 px"), align = "center")
              ),
              tabPanel(title = "Forage fish community",
-                      tags$h3("Forage fish insights"),
-                      "Sand lance, herring, capelin, and flatfish make up the majority of Kachemak Bay's forage fish community.",
+                      tags$h2("Forage fish community makeup"),
+                      tags$h4("Sand lance, herring, capelin, and flatfish make up the majority of Kachemak Bay's forage fish community."),
                       plotOutput("countfish"),
-                      "The diet card program also yields valuable information about forage fishes' size and life stage.",
+                      tags$br(),
+                      tags$h2("How big are the small fish?"),
+                      tags$h4("The diet card program also yields valuable information about forage fishes' size and life stage."),
                       plotOutput("foragesize"),
                       fluidRow(tags$img(src = "forage.png", height = "200 px"), align = "center"),
-                      "Which fish make up Alaska's forage fish community?",
-                      tags$a("Click here to download our guide.", href = "venn.pdf")
+                      tags$br(),
+                      tags$h2("Which fish make up Alaska's forage fish community?"),
+                      fluidRow(tags$img(src = "idpreview.png", height = "200 px"), align = "center"),
+                      fluidRow(tags$a("Click to download our guide.", href = "idguide.pdf"), align = "center")
              ),
              tabPanel(title = "Resources",
                       tags$h3("Data collection process"),
                       tags$h5("1. Fishermen submit photos of a predator fish's stomach contents."),
                       tags$h5("2. Scientists identify and measure prey species, recording data into a form."),
                       tags$h5("3. The form automatically updates the figures and data table (below) on this website."),
+                      tags$br(),
                       tags$h3("ID guide for forage fish species"),
-                      tags$a("Download here!", href = "guide.pdf"),
+                      fluidRow(tags$img(src = "guidepreview.png", height = "200 px"), align = "center"),
+                      fluidRow(tags$a("Click to download", href = "guide.pdf"), align = "center"),
+                      tags$br(),
+                      tags$h3("Glossary"),
+                      tags$ul(
+                        tags$li("Forage fish: A group if fish species that are eaten by marine predators. They have an important trophic position because they transfer energy from small plankton, which they eat, to large predatory fish, which eat them."), 
+                        tags$li("Trophic relationships: Think of a food web - who eats who? How is energy transferred through an ecosystem?"), 
+                        tags$li("Citizen science: A “citizen,” rather than professional academic, collects or analyzes data for the benefit of scientific progress."),
+                        tags$li("Juvenile: The early life stage of a species, before adulthood."),
+                        tags$li("Binomial nomenclature: Every organism has a common name and a scientific name, which includes two parts: first, its genus and second, its species. For instance, humans have the scientific name Homo (genus) sapiens (species)."),
+                        tags$li("Piscivore: Any organism that eats fish.")
+                      ),
+                      tags$br(),
                       tags$h3("Updated data (download buttons below!)"),
                       tags$table(dt),
                       ""
