@@ -97,7 +97,7 @@ compall <- ggplot(relabund, aes(x = Predator_spec, y = Relabund, fill = Prey_typ
   ylab("Percent diet composition") +
   xlab("Predator species") +
   theme_classic() +
-  scale_fill_npg()
+  scale_fill_brewer(palette = "Spectral")
 compall
 
 compfish <- ggplot(diet_data_fish, aes(x = Predator_spec, y = Relabund, fill = Species)) +
@@ -257,7 +257,7 @@ navlistPanel("A KBNERR citizen science initiative",
              )
 ),
 wellPanel(align = "center", "Website created by Clara Benadon (NOAA Hollings scholar).
-          Data collected by Miyumi Arimitsu (USGS), Clara Benadon, and volunteers.
+          Data collected by Mayumi Arimitsu (USGS), Clara Benadon, and volunteers.
           Scientific illustrations by Conrad Field (KBNERR).")
 )
 
